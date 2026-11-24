@@ -33,6 +33,7 @@ def make_settings(**overrides) -> Settings:
 
 def test_url_validation_and_normalization() -> None:
     assert normalize_url("https://twitter.com/dcfootballfan/?utm_source=x") == "https://x.com/dcfootballfan"
+    assert normalize_url("https://x.com/@AFIReview") == "https://x.com/AFIReview"
     assert is_valid_platform_profile_url("LinkedIn", "https://www.linkedin.com/in/john-smith-dc")
     assert not is_valid_platform_profile_url("LinkedIn", "https://www.linkedin.com/jobs/view/123")
     assert is_valid_platform_profile_url("Instagram", "https://www.instagram.com/dc_football_club")

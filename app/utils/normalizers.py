@@ -118,6 +118,8 @@ def normalize_url(url: str) -> str:
     path = re.sub(r"/+", "/", parsed.path or "")
     if path != "/" and path.endswith("/"):
         path = path.rstrip("/")
+    if netloc == "x.com" and path.startswith("/@"):
+        path = "/" + path[2:]
 
     query_params = parse_qs(parsed.query, keep_blank_values=False)
     filtered_params = {

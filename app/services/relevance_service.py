@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Dict, List
 
 from app.config import Settings
@@ -41,6 +42,14 @@ NON_PROSPECT_MARKERS = (
     "head of team business operations",
     "whatsapp channel",
     "embassy",
+    "email list",
+    "database 202",
+    "seeking co-founders",
+)
+
+LISTICLE_REGEX = re.compile(
+    r"(?:\btop\s+(?:\d+|football|start-?ups?|agencies|restaurants)\b|\b\d+\s+(?:best|top|founders|startups|agencies|restaurants)\b)",
+    re.IGNORECASE,
 )
 
 
@@ -167,7 +176,11 @@ class RelevanceService:
     @staticmethod
     def _is_obvious_noise(cand: CandidateProfile) -> bool:
         combined = f"{cand.name} {cand.bio}".lower()
-        return any(marker in combined for marker in NON_PROSPECT_MARKERS)
+        if any(marker in combined for marker in NON_PROSPECT_MARKERS):
+            return True
+        if LISTICLE_REGEX.search(cand.name):
+            return True
+        return False
 
     async def _llm_batch_evaluate(
         self,

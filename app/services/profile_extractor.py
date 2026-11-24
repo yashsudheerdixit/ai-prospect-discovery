@@ -308,13 +308,35 @@ class ProfileExtractor:
         elif " — " in cleaned:
             cleaned = cleaned.split(" — ", 1)[0].strip()
 
+        # Strip common page-section prefixes/suffixes like "Contact us - Business Name"
+        cleaned = re.sub(
+            r"^(?:about\s+us|contact\s+us|contact|home|front\s+page)\s*[-:|—]\s*",
+            "",
+            cleaned,
+            flags=re.IGNORECASE,
+        ).strip()
+        cleaned = re.sub(
+            r"\s*[-:|—]\s*(?:about\s+us|contact\s+us|front\s+page)$",
+            "",
+            cleaned,
+            flags=re.IGNORECASE,
+        ).strip()
+
+        # Reject raw URL strings or generic page labels as prospect names
+        generic_labels = {
+            "instagram", "facebook", "linkedin", "youtube", "x", "threads",
+            "about", "about us", "contact", "contact us", "home", "front page",
+        }
+        if cleaned.lower().startswith(("http://", "https://", "https ", "http ")) or cleaned.lower() in generic_labels:
+            cleaned = ""
+
         # Clean sentence-like or truncated titles (e.g. post text) by falling back to handle
         if len(cleaned.split()) > 6 or cleaned.endswith("..."):
             handle = ProfileExtractor._extract_handle_from_url(platform, url)
             if handle:
                 return handle.replace("_", " ").replace(".", " ").title()
 
-        if cleaned and len(cleaned) >= 2 and cleaned.lower() not in {"instagram", "facebook", "linkedin", "youtube", "x", "threads"}:
+        if cleaned and len(cleaned) >= 2:
             return cleaned
 
         handle = ProfileExtractor._extract_handle_from_url(platform, url)
