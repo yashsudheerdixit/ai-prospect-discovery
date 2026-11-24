@@ -257,13 +257,23 @@ class ProfileExtractor:
             whatsapp_links=whatsapp_links,
         )
 
+        # Filter out navbar/portal link dumps (e.g. university athletics pages linking 15 teams)
+        links_per_platform: Dict[str, List[SocialLink]] = {}
+        for s_link in social_links:
+            links_per_platform.setdefault(s_link.platform, []).append(s_link)
+        filtered_social_links: List[SocialLink] = []
+        for plat_name, items in links_per_platform.items():
+            unique_links = list({i.link: i for i in items}.values())
+            if len(unique_links) <= 2:
+                filtered_social_links.extend(unique_links)
+
         return {
             "title": title,
             "description": meta_desc or visible_text[:400],
             "emails": emails,
             "phones": phones,
             "whatsapp_links": whatsapp_links,
-            "social_links": social_links,
+            "social_links": filtered_social_links,
         }
 
     @staticmethod
@@ -299,6 +309,12 @@ class ProfileExtractor:
             cleaned = cleaned.split(" | ", 1)[0].strip()
         elif " — " in cleaned:
             cleaned = cleaned.split(" — ", 1)[0].strip()
+
+        # Clean sentence-like or truncated titles (e.g. post text) by falling back to handle
+        if len(cleaned.split()) > 6 or cleaned.endswith("..."):
+            handle = ProfileExtractor._extract_handle_from_url(platform, url)
+            if handle:
+                return handle.replace("_", " ").replace(".", " ").title()
 
         if cleaned and len(cleaned) >= 2 and cleaned.lower() not in {"instagram", "facebook", "linkedin", "youtube", "x", "threads"}:
             return cleaned
@@ -337,10 +353,23 @@ class ProfileExtractor:
         state = intent.location.state
         country = intent.location.country
 
+        city_matched = bool(
+            city
+            and (
+                city.lower() in low
+                or ("washington" in city.lower() and ("washington dc" in low or "washington, dc" in low or " d.c." in low or " dc " in low))
+            )
+        )
+        state_matched = bool(state and state.lower() in low and (not city or state.lower() != city.lower()))
+
+        # If a specific city was requested, do NOT assign location from country alone
+        if city and not (city_matched or state_matched):
+            return None
+
         matched_parts: List[str] = []
-        if city and (city.lower() in low or ("washington" in city.lower() and "dc" in low)):
+        if city_matched and city:
             matched_parts.append(city)
-        if state and state.lower() in low and (not city or state.lower() != city.lower()):
+        if state_matched and state:
             matched_parts.append(state)
         if country and (
             country.lower() in low
@@ -350,9 +379,7 @@ class ProfileExtractor:
         ):
             matched_parts.append(country)
 
-        if matched_parts:
-            return ", ".join(matched_parts)
-        return intent.location.formatted()
+        return ", ".join(matched_parts) if matched_parts else None
 
     @staticmethod
     def _dedupe_links(links: List[SocialLink]) -> List[SocialLink]:

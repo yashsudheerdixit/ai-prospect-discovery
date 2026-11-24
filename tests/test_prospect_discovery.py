@@ -39,6 +39,8 @@ def test_url_validation_and_normalization() -> None:
     assert not is_valid_platform_profile_url("Instagram", "https://www.instagram.com/p/C8xYz123")
     assert is_valid_platform_profile_url("YouTube", "https://www.youtube.com/@DCFootballTV")
     assert is_valid_platform_profile_url("Threads", "https://www.threads.net/@dcfootball")
+    assert not is_valid_platform_profile_url("Threads", "https://www.threads.net/@dcfootball/post/123")
+    assert not is_valid_platform_profile_url("X", "https://x.com/dcfootball/status/12345")
     assert not is_valid_platform_profile_url("Google", "https://www.google.com/search?q=football")
     assert normalize_whatsapp_link("https://api.whatsapp.com/send?phone=+1-202-555-0147") == "https://wa.me/12025550147"
 
@@ -203,7 +205,13 @@ def test_post_prospect_discovery_end_to_end_and_resilience() -> None:
                     url="https://x.com/alexriveradc",
                     snippet="Washington DC football enthusiast. Reach me on https://wa.me/12025550142",
                     source_platform="X",
-                )
+                ),
+                RawSearchResult(
+                    title="Random Football Fan in Boston",
+                    url="https://x.com/bostonfan123",
+                    snippet="Football lover in Boston, USA",
+                    source_platform="X",
+                ),
             ],
         ),
         StubFailingPlatform(settings),

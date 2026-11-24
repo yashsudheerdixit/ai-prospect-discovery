@@ -15,15 +15,16 @@ For each candidate, return an entry in JSON:
       "index": 0,
       "is_relevant": true,
       "score": 0.85,
-      "clean_name": "Corrected person or business name without platform boilerplate",
+      "clean_name": "Short real person, creator, club, or business name (NEVER a tweet, sentence, or headline)",
       "location": "Formatted location if evidenced, else null",
       "reason": "Short evidence-based reason"
     }
   ]
 }
-Reject:
-- Generic listicles, articles, job boards, directories, or aggregator pages.
-- Profiles with zero evidence connecting them to the target interest/audience or location.
+Strict Rejection Rules:
+- Reject generic listicles, team rosters, schedules, articles, job postings, directories, or aggregator pages.
+- If a specific city is requested (e.g. Washington DC, New York, London, Ahmedabad, Dubai), reject profiles clearly based in a DIFFERENT city or unrelated country (e.g. Boston, Nashville, Glasgow, Washington State) unless explicitly connected to the target city.
+- Require real supporting evidence in the snippet/URL connecting the prospect to the target audience/interest.
 - Do NOT invent names, URLs, or locations not supported by the provided snippet/URL."""
 
 NON_PROSPECT_MARKERS = (
@@ -33,8 +34,11 @@ NON_PROSPECT_MARKERS = (
     "job openings",
     "hiring ",
     "wikipedia",
-    "news",
     "reddit",
+    "football roster",
+    "official roster",
+    "game schedule",
+    "head of team business operations",
 )
 
 
@@ -61,7 +65,7 @@ class RelevanceService:
             score, reason = self._deterministic_score(cand, intent)
             cand.relevance_score = score
             cand.relevance_reason = reason
-            if not self._is_obvious_noise(cand) and score >= 0.25:
+            if not self._is_obvious_noise(cand) and score >= 0.30:
                 pre_filtered.append(cand)
 
         if not pre_filtered:
@@ -93,25 +97,43 @@ class RelevanceService:
         keywords = [k.lower() for k in intent.keywords if k]
         interest_hits = sum(1 for kw in keywords if kw in text)
         if interest_hits > 0:
-            score += min(0.50, 0.25 + 0.10 * interest_hits)
+            score += min(0.45, 0.25 + 0.10 * interest_hits)
             reasons.append(f"interest_hits={interest_hits}")
 
-        # Location signals
-        loc_tokens = [
-            p.lower()
-            for p in (intent.location.city, intent.location.state, intent.location.country)
-            if p
-        ]
-        loc_hits = sum(1 for tok in loc_tokens if tok in text or (cand.location and tok in cand.location.lower()))
-        if not loc_tokens:
+        # City / State / Country signals
+        city = (intent.location.city or "").lower()
+        state = (intent.location.state or "").lower()
+        country = (intent.location.country or "").lower()
+
+        city_hit = bool(
+            city
+            and (
+                city in text
+                or (cand.location and city in cand.location.lower())
+                or ("washington" in city and ("washington dc" in text or "washington, dc" in text or " d.c." in text or " dc " in text))
+            )
+        )
+        state_hit = bool(state and (state in text or (cand.location and state in cand.location.lower())))
+        country_hit = bool(country and (country in text or (cand.location and country in cand.location.lower())))
+
+        if city:
+            if city_hit or state_hit:
+                score += 0.35
+                reasons.append("city_match")
+            elif country_hit:
+                # Country-only match when a specific city was requested is weak
+                score += 0.05
+                reasons.append("country_only")
+        elif country:
+            if country_hit:
+                score += 0.30
+                reasons.append("country_match")
+        else:
             score += 0.20
-        elif loc_hits > 0:
-            score += min(0.35, 0.20 + 0.10 * loc_hits)
-            reasons.append(f"location_hits={loc_hits}")
 
         # Multi-platform / contact richness bonus
         if len(cand.social_links) >= 2:
-            score += 0.15
+            score += 0.10
             reasons.append("multi_link")
         if cand.emails or cand.phones or cand.whatsapp_links:
             score += 0.10

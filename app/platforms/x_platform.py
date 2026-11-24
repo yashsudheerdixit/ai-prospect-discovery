@@ -1,8 +1,9 @@
 from urllib.parse import urlparse
 
 from app.platforms.base import BasePlatformDiscoverer
-from app.schemas import QueryIntent
+from app.schemas import QueryIntent, RawSearchResult
 from app.utils.normalizers import normalize_url
+from app.utils.validators import is_valid_platform_profile_url
 
 
 class XPlatformDiscoverer(BasePlatformDiscoverer):
@@ -15,11 +16,11 @@ class XPlatformDiscoverer(BasePlatformDiscoverer):
         return f"(site:x.com OR site:twitter.com) -inurl:status -inurl:hashtag -inurl:search {terms}"
 
     def normalize_candidate_url(self, url: str) -> str:
-        canonical = normalize_url(url)
-        parsed = urlparse(canonical)
-        segments = [s for s in parsed.path.strip("/").split("/") if s]
-        # If search returned a specific tweet/post URL (x.com/handle/status/123),
-        # collapse cleanly to the verified author profile URL x.com/handle.
-        if len(segments) >= 3 and segments[1] == "status":
-            return f"https://x.com/{segments[0]}"
-        return canonical
+        return normalize_url(url)
+
+    def is_valid_result(self, canonical_url: str, item: RawSearchResult) -> bool:
+        # Reject individual tweet/status pages so only genuine indexed profiles are kept
+        segments = [s for s in urlparse(canonical_url).path.strip("/").split("/") if s]
+        if len(segments) != 1:
+            return False
+        return is_valid_platform_profile_url(self.platform_name, canonical_url)

@@ -1,8 +1,9 @@
 from urllib.parse import urlparse
 
 from app.platforms.base import BasePlatformDiscoverer
-from app.schemas import QueryIntent
+from app.schemas import QueryIntent, RawSearchResult
 from app.utils.normalizers import normalize_url
+from app.utils.validators import is_valid_platform_profile_url
 
 
 class ThreadsPlatformDiscoverer(BasePlatformDiscoverer):
@@ -15,10 +16,11 @@ class ThreadsPlatformDiscoverer(BasePlatformDiscoverer):
         return f"(site:threads.net/@ OR site:threads.com/@) -inurl:/post/ {terms}"
 
     def normalize_candidate_url(self, url: str) -> str:
-        canonical = normalize_url(url)
-        parsed = urlparse(canonical)
-        segments = [s for s in parsed.path.strip("/").split("/") if s]
-        # Collapse post URLs like threads.net/@user/post/xyz to profile URL threads.net/@user
-        if segments and segments[0].startswith("@") and len(segments) >= 2 and segments[1] == "post":
-            return f"https://{parsed.netloc}/{segments[0]}"
-        return canonical
+        return normalize_url(url)
+
+    def is_valid_result(self, canonical_url: str, item: RawSearchResult) -> bool:
+        # Reject individual Threads posts so only genuine indexed profile pages are kept
+        segments = [s for s in urlparse(canonical_url).path.strip("/").split("/") if s]
+        if len(segments) != 1 or not segments[0].startswith("@"):
+            return False
+        return is_valid_platform_profile_url(self.platform_name, canonical_url)

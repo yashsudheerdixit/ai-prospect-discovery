@@ -15,6 +15,23 @@ GENERIC_LISTICLE_TITLES = (
     "jobs in",
     "salary",
     "news",
+    "roster",
+    "schedule",
+    "standings",
+)
+
+EXCLUDED_URL_SEGMENTS = (
+    "/roster",
+    "/schedule",
+    "/stats",
+    "/standings",
+    "/scores",
+    "/news/",
+    "/article/",
+    "/articles/",
+    "/jobs/",
+    "/careers/",
+    "/wiki/",
 )
 
 
@@ -27,14 +44,17 @@ class GooglePlatformDiscoverer(BasePlatformDiscoverer):
         terms = self._base_terms(intent, "Google")
         if intent.target_type == "business":
             return f"{terms} official website contact"
-        return f"{terms} profile bio contact"
+        return f"{terms} community OR club OR creator OR blog contact"
 
     def is_valid_result(self, canonical_url: str, item: RawSearchResult) -> bool:
         if not is_valid_platform_profile_url("Website", canonical_url):
-            # Also allow Google Business / Google Sites profiles
             host = urlparse(canonical_url).netloc.lower()
             if not ("sites.google.com" in host or host == "g.page" or "maps.google." in host):
                 return False
+
+        path_low = (urlparse(canonical_url).path or "").lower()
+        if any(seg in path_low for seg in EXCLUDED_URL_SEGMENTS):
+            return False
 
         title_low = (item.title or "").lower()
         if any(marker in title_low for marker in GENERIC_LISTICLE_TITLES):
