@@ -150,6 +150,17 @@ class StubFailingPlatform(BasePlatformDiscoverer):
         return PlatformDiscoveryResult(platform=self.platform_name, results=[], error="Simulated 429 rate limit")
 
 
+def test_root_and_health_endpoints() -> None:
+    client = TestClient(app)
+    root_resp = client.get("/")
+    assert root_resp.status_code == 200
+    assert "Prospect Discovery" in root_resp.text
+
+    health_resp = client.get("/health")
+    assert health_resp.status_code == 200
+    assert health_resp.json()["status"] == "ok"
+
+
 def test_post_prospect_discovery_validation_errors() -> None:
     client = TestClient(app)
     resp_empty = client.post("/prospect-discovery", json={"query": "   "})

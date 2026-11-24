@@ -5,7 +5,7 @@ from typing import AsyncIterator
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from app.config import Settings, get_settings
 from app.schemas import ErrorResponse, ProspectDiscoveryRequest, ProspectDiscoveryResponse
@@ -77,6 +77,68 @@ async def unhandled_exception_handler(
         detail="An unexpected error occurred while processing the prospect discovery request.",
     )
     return JSONResponse(status_code=500, content=payload.model_dump())
+
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def root_demo_page() -> str:
+    """Interactive demo landing page for the Prospect Discovery API."""
+    return """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Prospect Discovery API</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 820px; margin: 40px auto; padding: 0 20px; color: #111827; background: #f9fafb; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    h1 { margin-top: 0; font-size: 1.6rem; }
+    .links { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .links a { text-decoration: none; background: #eef2ff; color: #3730a3; padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 0.9rem; }
+    .row { display: flex; gap: 10px; }
+    input { flex: 1; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem; }
+    button { padding: 10px 18px; border: none; border-radius: 8px; background: #2563eb; color: #fff; font-weight: 600; cursor: pointer; }
+    button:disabled { opacity: 0.6; cursor: wait; }
+    pre { background: #111827; color: #f3f4f6; padding: 16px; border-radius: 8px; overflow-x: auto; margin-top: 16px; font-size: 0.88rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>AI-Powered Multi-Platform Prospect Discovery API</h1>
+    <div class="links">
+      <a href="/docs">OpenAPI / Swagger Docs (/docs)</a>
+      <a href="/health">Health Check (/health)</a>
+    </div>
+    <p>Test <code>POST /prospect-discovery</code> live:</p>
+    <div class="row">
+      <input id="q" type="text" value="Football lovers in Washington DC in USA" />
+      <button id="btn" onclick="runQuery()">Discover</button>
+    </div>
+    <pre id="out">Click Discover to send a request to POST /prospect-discovery...</pre>
+  </div>
+  <script>
+    async function runQuery() {
+      const btn = document.getElementById("btn");
+      const out = document.getElementById("out");
+      const query = document.getElementById("q").value;
+      btn.disabled = true;
+      out.textContent = "Searching across platforms...";
+      try {
+        const res = await fetch("/prospect-discovery", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query })
+        });
+        const data = await res.json();
+        out.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        out.textContent = "Request failed: " + err;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>"""
 
 
 @app.get("/health", tags=["System"])
