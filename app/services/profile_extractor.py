@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Set
 from urllib.parse import urljoin, urlparse
 
 import httpx
+import phonenumbers
 from bs4 import BeautifulSoup
 
 from app.config import Settings
@@ -155,13 +156,16 @@ class ProfileExtractor:
                     if h:
                         handles[link_obj.platform] = h
 
-        # Add verified contact channels to social_links
+        # Add verified contact channels to social_links (skip foreign phone/WhatsApp when target country is known)
+        expected_region = COUNTRY_DEFAULT_REGION.get((intent.location.country or "").strip().lower())
         for email in sorted(emails):
             social_links.append(SocialLink(platform="Email", link=f"mailto:{email}"))
         for phone in sorted(phones):
-            social_links.append(SocialLink(platform="Phone", link=f"tel:{phone}"))
+            if self._phone_matches_region(phone, expected_region):
+                social_links.append(SocialLink(platform="Phone", link=f"tel:{phone}"))
         for wa in sorted(whatsapp_links):
-            social_links.append(SocialLink(platform="WhatsApp", link=wa))
+            if self._whatsapp_matches_region(wa, expected_region):
+                social_links.append(SocialLink(platform="WhatsApp", link=wa))
 
         deduped_links = self._dedupe_links(social_links)
         if not deduped_links:
@@ -365,6 +369,26 @@ class ProfileExtractor:
     def _infer_phone_region(intent: QueryIntent) -> str:
         country = (intent.location.country or "").strip().lower()
         return COUNTRY_DEFAULT_REGION.get(country, "US")
+
+    @staticmethod
+    def _phone_matches_region(e164_phone: str, expected_region: Optional[str]) -> bool:
+        if not expected_region:
+            return True
+        try:
+            parsed = phonenumbers.parse(e164_phone, None)
+            region = phonenumbers.region_code_for_number(parsed)
+            return region is None or region == expected_region
+        except phonenumbers.NumberParseException:
+            return False
+
+    @staticmethod
+    def _whatsapp_matches_region(wa_link: str, expected_region: Optional[str]) -> bool:
+        if not expected_region or "chat.whatsapp.com/" in wa_link.lower():
+            return True
+        m = re.search(r"wa\.me/(\d+)", wa_link)
+        if not m:
+            return True
+        return ProfileExtractor._phone_matches_region(f"+{m.group(1)}", expected_region)
 
     @staticmethod
     def _extract_location_hint(text: str, intent: QueryIntent) -> Optional[str]:
