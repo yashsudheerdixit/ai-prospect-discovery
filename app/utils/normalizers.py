@@ -142,15 +142,27 @@ def normalize_location_token(token: str) -> str:
 
 
 def normalize_whatsapp_link(raw_link_or_phone: str) -> Optional[str]:
-    """Convert a WhatsApp URL or phone number into a canonical https://wa.me/<digits> link."""
+    """Convert a WhatsApp contact URL or phone number into a canonical https://wa.me/<digits> link."""
     if not raw_link_or_phone:
         return None
     val = raw_link_or_phone.strip()
-    if "chat.whatsapp.com/" in val.lower():
+    low = val.lower()
+
+    # Never extract channel/directory IDs from whatsapp.com/channel/... as phone numbers
+    if "whatsapp.com/channel/" in low:
+        return None
+
+    if "chat.whatsapp.com/" in low:
         return normalize_url(val)
 
-    digits_match = re.search(r"(?:wa\.me/|phone=)(\+?\d[\d\s-]{6,18}\d)", val, re.IGNORECASE)
-    if digits_match:
+    if low.startswith(("http://", "https://")):
+        digits_match = re.search(
+            r"(?:wa\.me/|api\.whatsapp\.com/send\?[^#]*?phone=)(\+?\d[\d\s-]{6,18}\d)",
+            val,
+            re.IGNORECASE,
+        )
+        if not digits_match:
+            return None
         digits = re.sub(r"\D", "", digits_match.group(1))
     else:
         digits = re.sub(r"\D", "", val)

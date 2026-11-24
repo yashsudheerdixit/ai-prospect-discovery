@@ -43,6 +43,7 @@ def test_url_validation_and_normalization() -> None:
     assert not is_valid_platform_profile_url("X", "https://x.com/dcfootball/status/12345")
     assert not is_valid_platform_profile_url("Google", "https://www.google.com/search?q=football")
     assert normalize_whatsapp_link("https://api.whatsapp.com/send?phone=+1-202-555-0147") == "https://wa.me/12025550147"
+    assert normalize_whatsapp_link("https://whatsapp.com/channel/00294052452") is None
 
 
 def test_contact_validation() -> None:

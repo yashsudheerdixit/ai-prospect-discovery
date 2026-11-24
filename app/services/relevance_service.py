@@ -39,6 +39,8 @@ NON_PROSPECT_MARKERS = (
     "official roster",
     "game schedule",
     "head of team business operations",
+    "whatsapp channel",
+    "embassy",
 )
 
 
@@ -53,7 +55,7 @@ class RelevanceService:
         self,
         candidates: List[CandidateProfile],
         intent: QueryIntent,
-        min_score: float = 0.45,
+        min_score: float = 0.50,
     ) -> List[CandidateProfile]:
         """Score candidates for interest, location, and authenticity; return verified matches."""
         if not candidates:
@@ -65,7 +67,7 @@ class RelevanceService:
             score, reason = self._deterministic_score(cand, intent)
             cand.relevance_score = score
             cand.relevance_reason = reason
-            if not self._is_obvious_noise(cand) and score >= 0.30:
+            if not self._is_obvious_noise(cand) and score >= 0.35:
                 pre_filtered.append(cand)
 
         if not pre_filtered:
@@ -84,9 +86,30 @@ class RelevanceService:
             for cand in batch_slice:
                 cand.is_relevant = cand.relevance_score >= min_score
 
-        relevant = [c for c in batch_slice if c.is_relevant and c.relevance_score >= min_score]
+        relevant = [
+            c
+            for c in batch_slice
+            if c.is_relevant
+            and c.relevance_score >= min_score
+            and self._passes_city_guard(c, intent)
+        ]
         relevant.sort(key=lambda c: c.relevance_score, reverse=True)
         return relevant[: self.settings.max_prospects_returned]
+
+    @staticmethod
+    def _passes_city_guard(cand: CandidateProfile, intent: QueryIntent) -> bool:
+        """When a city is specified, ensure the prospect isn't only a generic country-level match."""
+        city = (intent.location.city or "").lower()
+        if not city:
+            return True
+        text = f"{cand.location or ''} {cand.bio} {cand.name}".lower()
+        if city in text:
+            return True
+        if "washington" in city and any(tok in text for tok in ("washington dc", "washington, dc", "d.c.", " dc ")):
+            return True
+        if intent.location.state and intent.location.state.lower() in text:
+            return True
+        return False
 
     def _deterministic_score(self, cand: CandidateProfile, intent: QueryIntent) -> tuple[float, str]:
         text = f"{cand.name} {cand.bio} {' '.join(cand.source_urls)}".lower()
@@ -174,7 +197,7 @@ class RelevanceService:
         raw = await self.llm_service.generate_json(
             system_prompt=RELEVANCE_SYSTEM_PROMPT,
             user_prompt=user_prompt,
-            max_tokens=1200,
+            max_tokens=2000,
         )
 
         eval_map: Dict[int, dict] = {

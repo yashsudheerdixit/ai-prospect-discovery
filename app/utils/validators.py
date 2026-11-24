@@ -269,4 +269,4 @@ def infer_platform_from_url(url: str) -> Optional[str]:
         return "WhatsApp"
     if "maps.google." in host or host == "g.page":
         return "Google"
-    return "Website"
+    return "Google"

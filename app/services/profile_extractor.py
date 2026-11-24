@@ -94,8 +94,6 @@ class ProfileExtractor:
     ) -> Optional[CandidateProfile]:
         canonical_url = normalize_url(item.url)
         platform = infer_platform_from_url(canonical_url) or item.source_platform
-        if platform == "Website" and item.source_platform == "Google":
-            platform = "Website"
 
         combined_text = normalize_whitespace(f"{item.title} {item.snippet}")
         name = self._extract_name(item.title, canonical_url, platform)

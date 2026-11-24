@@ -187,6 +187,13 @@ curl -X POST http://localhost:4000/prospect-discovery \
 }
 ```
 
+### Live Deployment (Render)
+
+- **Live Demo UI**: https://ai-prospect-discovery-e7xj.onrender.com
+- **API Endpoint**: `POST https://ai-prospect-discovery-e7xj.onrender.com/prospect-discovery`
+- **Swagger / OpenAPI Docs**: https://ai-prospect-discovery-e7xj.onrender.com/docs
+- **Health Check**: https://ai-prospect-discovery-e7xj.onrender.com/health
+
 ### Practical Test Queries Covered
 
 | # | Query | Parsed Audience | Parsed Location | Target Type |
