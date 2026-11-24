@@ -194,15 +194,55 @@ curl -X POST http://localhost:4000/prospect-discovery \
 - **Swagger / OpenAPI Docs**: https://ai-prospect-discovery-e7xj.onrender.com/docs
 - **Health Check**: https://ai-prospect-discovery-e7xj.onrender.com/health
 
-### Practical Test Queries Covered
+### Practical Test Queries & Verified Live Discovery Logs
 
-| # | Query | Parsed Audience | Parsed Location | Target Type |
-|---|-------|-----------------|-----------------|-------------|
-| 1 | `Football lovers in Washington DC in USA` | Football lovers | Washington DC, District of Columbia, USA | `individual` |
-| 2 | `Digital marketing agency owners in New York USA` | Digital marketing agency owners | New York, New York, USA | `business` |
-| 3 | `Startup founders in London UK` | Startup founders | London, England, UK | `individual` |
-| 4 | `Cricket lovers in Ahmedabad India` | Cricket lovers | Ahmedabad, Gujarat, India | `individual` |
-| 5 | `Restaurant owners in Dubai UAE` | Restaurant owners | Dubai, Dubai, UAE | `business` |
+All 5 required practical test queries were executed live against `POST https://ai-prospect-discovery-e7xj.onrender.com/prospect-discovery` (`200 OK`):
+
+| # | Query | Parsed Audience | Parsed Location | Target Type | Live Results | Latency |
+|---|---|---|---|---|---|---|
+| 1 | `Football lovers in Washington DC in USA` | Football lovers | Washington DC, District of Columbia, USA | `individual` | 7 prospects | 8.36s |
+| 2 | `Digital marketing agency owners in New York USA` | Digital marketing agency owners | New York, New York, USA | `business` | 9 prospects | 9.70s |
+| 3 | `Startup founders in London UK` | Startup founders | London, England, UK | `individual` | 8 prospects | 8.16s |
+| 4 | `Cricket lovers in Ahmedabad India` | Cricket lovers | Ahmedabad, Gujarat, India | `individual` | 8 prospects | 4.84s |
+| 5 | `Restaurant owners in Dubai UAE` | Restaurant owners | Dubai, Dubai, UAE | `business` | 10 prospects | 7.26s |
+
+<details>
+<summary>Sample Observed Live Logs (All 5 Test Queries)</summary>
+
+```text
+HOME: 200 True
+HEALTH: 200 {"status":"ok","service":"AI-Powered Multi-Platform Prospect Discovery API","llm_configured":true,"search_backends_configured":["serper","tavily","youtube_data_api_v3"]}
+
+QUERY: Football lovers in Washington DC in USA | status=200 | time=8.36s | total=7
+  - James Galbally | Washington DC | [('LinkedIn', 'https://www.linkedin.com/in/james-galbally-815038380')]
+  - Jordan Stuart | Washington DC | [('LinkedIn', 'https://www.linkedin.com/in/nextmovejordan')]
+  - DC Tweet Team Podcast | Washington DC | [('YouTube', 'https://www.youtube.com/@dctweetteampodcast7635')]
+  - Robert Darwell | Washington DC | [('Threads', 'https://www.threads.net/@thedailyserver')]
+  - Food Drink Sports Watching & Games Sports & Social DC | Washington DC | [('Google', 'https://sportsandsocial.com/dc'), ('Facebook', 'https://www.facebook.com/sportssocialdc'), ('Instagram', 'https://www.instagram.com/sportssocialdc'), ('Email', 'mailto:dcinfo@sportsandsocial.com')]
+
+QUERY: Digital marketing agency owners in New York USA | status=200 | time=9.7s | total=9
+  - Digital Marketing Agency New York SEO PPC & Web Services NYC | New York, USA | [('Google', 'https://www.idhlagency.com/us/contact/newyork'), ('Instagram', 'https://www.instagram.com/weareidhl'), ('LinkedIn', 'https://www.linkedin.com/company/weareidhl'), ('X', 'https://x.com/weareIDHL')]
+  - Digital Marketing Agency in New York | New York, USA | [('YouTube', 'https://www.youtube.com/@digitalmarketingagencyinne1103'), ('Google', 'https://www.webtonic.io/office/new-york'), ('Email', 'mailto:shalabh.mishra@gmail.com'), ('Phone', 'tel:+13325295442')]
+  - Hudson Creative | New York | [('X', 'https://x.com/hudsoncreate')]
+
+QUERY: Startup founders in London UK | status=200 | time=8.16s | total=8
+  - John-Pierre Clark | London, UK | [('LinkedIn', 'https://uk.linkedin.com/in/johnpierreclark')]
+  - Startupsoflndn | London, UK | [('X', 'https://x.com/startupsoflndn')]
+  - Mr. Telugu Startup UK | London, UK | [('YouTube', 'https://www.youtube.com/@mrtelugustartupuk')]
+
+QUERY: Cricket lovers in Ahmedabad India | status=200 | time=4.84s | total=8
+  - INDIAN CRICKET LOVERS | Ahmedabad, India | [('LinkedIn', 'https://in.linkedin.com/in/indian-cricket-lovers-41481b296')]
+  - Harshil Joshi | Ahmedabad, Gujarat, India | [('LinkedIn', 'https://in.linkedin.com/in/harshil-joshi-37376a145')]
+  - Gcamotera | Gujarat | [('X', 'https://x.com/GCAMotera')]
+
+QUERY: Restaurant owners in Dubai UAE | status=200 | time=7.26s | total=10
+  - Emirates Sea Restaurants LLC | Dubai, UAE | [('Google', 'https://www.emiratessearestaurants.com/about.php'), ('Facebook', 'https://www.facebook.com/emiratessea'), ('Instagram', 'https://www.instagram.com/emiratessearestaurant'), ('Email', 'mailto:info@emiratessea.ae')]
+  - Dubai Foodie | Dubai | [('X', 'https://x.com/dxbfooddiaries'), ('Email', 'mailto:dubaifooddiaries@gmail.com')]
+  - Oldtbilisi Uae | Dubai, UAE | [('YouTube', 'https://www.youtube.com/@oldtbilisi_uae'), ('Phone', 'tel:+971545873883')]
+  - Shahbaz Shahid Khan | Dubai | [('LinkedIn', 'https://ae.linkedin.com/in/shahbaz-shahid-khan-4b10a6a0')]
+```
+
+</details>
 
 ---
 
